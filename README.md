@@ -49,6 +49,6 @@ The sounds from which the audio recordings were made came from freely-available 
 
 ## License
 
-**Code:** GNU General Public License v2.0 (GPLv2)
+**Code:** [GNU General Public License v2.0 (GPLv2)](https://choosealicense.com/licenses/gpl-2.0)
 
-**Paper:** [Creative Commons — Attribution 4.0 International (CC BY 4.0)](https://creativecommons.org/licenses/by/4.0) ![license image](LICENSE-CC-BY.png)
+**Paper:** [Creative Commons — Attribution 4.0 International (CC BY 4.0)](https://creativecommons.org/licenses/by/4.0)
