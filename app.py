@@ -191,9 +191,7 @@ def main():
      - N: the labels as integers (e.g. 1, then 2, ...)
     '''
 
-    # Load configuration parameters
-    conf = {}
-    with Timer('Loading configuration'):
+    with Timer('Loading parameters'):
         try:
             with open('parameters.json') as f:
                 settings = json.load(f)
@@ -205,8 +203,6 @@ def main():
                             exec(f'{k} = {value}', globals(), globals())
         except:
             sys.exit('Bad configuration. Traceback:\n' + traceback.format_exc())
-    for k, v in conf.items():
-        globals()[k] = v
 
     with Timer('Trimming audio and splitting on silence'):
         if not os.path.isdir(destination):
@@ -258,6 +254,7 @@ def main():
                 pickle.dump(y_train, h)
                 pickle.dump(y_test, i)
 
+    # Machine learning models and their filenames
     models = {
         'svc.model':  SVC(random_state=random_state),
         'mlp.model':  MLPClassifier(random_state=random_state),
@@ -268,8 +265,7 @@ def main():
         'nb.model':   GaussianNB(),
         'dt.model':   DecisionTreeClassifier(random_state=random_state)
     }
-    reports = None
-    matrices = []
+    reports, matrices = None, []
 
     for model_name, model in models.items():
         if os.path.isfile(model_name):
