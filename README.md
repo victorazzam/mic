@@ -18,6 +18,8 @@ The purpose of this experiment is to answer the following questions:
 
 [Click here for the full paper.](ml-based-mic-fingerprinting.pdf)
 
+[Click here to view the poster.](poster.pdf)
+
 ## Code used
 
 Python and its standard library, in addition to the following packages installed using `pip`:
