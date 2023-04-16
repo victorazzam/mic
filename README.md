@@ -24,6 +24,10 @@ The purpose of this experiment is to answer the following questions:
 
 [Click here to view the poster.](poster.pdf)
 
+## Project pipeline
+
+![pipeline image](pipeline.png)
+
 ## Code used
 
 Python and its standard library, in addition to the following packages installed using `pip`:
