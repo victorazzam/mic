@@ -1,6 +1,10 @@
+![poster image](poster.png)
+
 # Microphone Fingerprinting via Machine Learning
 
 Part of my Master's thesis submission.
+
+**NEW:** [Click here to access the simplified Jupyter Notebook.](Microphone_Fingerprinting.ipynb)
 
 ## Acknowledgements
 
@@ -48,6 +52,8 @@ The sounds from which the audio recordings were made came from freely-available 
 | JJD - Can't Say No | NoCopyrightSounds | [on ncs.io](http://ncs.io/CantSayNo) |
 | Peter Pan (version 3 Dramatic Reading) | LibriVox | [on librivox.org](https://librivox.org/peter-pan-dramatic-reading-by-j-m-barrie) |
 | Peter Pan (version 2) | LibriVox | [on librivox.org](https://librivox.org/peter-pan-version-2) |
+
+The sounds were recorded by playing the sourced audio through a loudspeaker directly facing 5 microphones that were connected to a TASCAM Model 12 audio interface.
 
 ## License
 

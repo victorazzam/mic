@@ -13,7 +13,7 @@ import matplotlib.pyplot as plt
 from sklearn.decomposition import PCA
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler
-from sklearn.metrics import accuracy_score, classification_report, confusion_matrix
+from sklearn.metrics import classification_report, confusion_matrix
 
 # ML classifiers
 from sklearn.svm import SVC
@@ -85,8 +85,9 @@ def load_data(data_folder):
         if os.path.isdir(path):
             label = int(path.split('-')[-1])
             for mic_part in os.listdir(path):
-                X.append(os.path.join(path, mic_part))
-                y.append(label)
+                if mic_part.lower().endswith('.wav'):
+                    X.append(os.path.join(path, mic_part))
+                    y.append(label)
     return X, np.array(y)
 
 # Feature extraction: MFCC, ZCR, RMS
@@ -223,7 +224,7 @@ def main():
         X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=test_size, random_state=random_state, stratify=y)
 
     if all(os.path.isfile(x) for x in (train_x_ft, train_y_lb, test_x_ft, test_y_lb)):
-        with Timer('Loading sounds and labels'):
+        with Timer('Loading features and labels'):
             with open(train_x_ft, 'rb') as f,   \
                  open(train_y_lb, 'rb') as g,   \
                  open(test_x_ft, 'rb') as h,    \
