@@ -1,29 +1,27 @@
+# -*- coding: utf-8 -*-
+'''
+Microphone Fingerprinting
+
+Project homepage: https://github.com/victorazzam/mic
+
+Project dataset: https://www.kaggle.com/datasets/victorazzam/microphone-fingerprinting
+
+Main goal: identify microphones by the sounds they recorded.
+
+Requirements: audio files (WAV) and the following Python libraries:
+ - librosa
+ - matplotlib
+ - numpy
+ - pandas
+ - pydub
+ - scikit-learn
+'''
+
 # System
 import os, sys, time, json, random, pickle, warnings, threading, traceback
 
-# Audio
-import wave, librosa
-from pydub import AudioSegment
-from pydub.silence import split_on_silence
-
-# ML helpers
-import numpy as np
-import pandas as pd
-import matplotlib.pyplot as plt
-from sklearn.decomposition import PCA
-from sklearn.model_selection import train_test_split
-from sklearn.preprocessing import StandardScaler
-from sklearn.metrics import classification_report, confusion_matrix
-
-# ML classifiers
-from sklearn.svm import SVC
-from sklearn.naive_bayes import GaussianNB
-from sklearn.tree import DecisionTreeClassifier
-from sklearn.neural_network import MLPClassifier
-from sklearn.neighbors import KNeighborsClassifier
-from sklearn.ensemble import RandomForestClassifier
-from sklearn.linear_model import LogisticRegression
-from sklearn.ensemble import GradientBoostingClassifier
+# Thread backlog
+threads = []
 
 # Live time counter https://stackoverflow.com/a/44381654
 class Timer(threading.Thread):
@@ -50,6 +48,32 @@ class Timer(threading.Thread):
         self.stop()
         self.join()
 
+with Timer('Importing dependencies'):
+    # Audio
+    import wave, librosa
+    from pydub import AudioSegment
+    from pydub.silence import split_on_silence
+
+    # ML helpers
+    import numpy as np
+    import pandas as pd
+    import matplotlib.pyplot as plt
+    from sklearn.decomposition import PCA
+    from sklearn.model_selection import train_test_split
+    from sklearn.preprocessing import StandardScaler
+    from sklearn.metrics import accuracy_score, classification_report, confusion_matrix
+
+    # ML classifiers
+    from sklearn.svm import SVC
+    from sklearn.naive_bayes import GaussianNB
+    from sklearn.tree import DecisionTreeClassifier
+    from sklearn.neural_network import MLPClassifier
+    from sklearn.neighbors import KNeighborsClassifier
+    from sklearn.ensemble import RandomForestClassifier
+    from sklearn.linear_model import LogisticRegression
+    from sklearn.ensemble import GradientBoostingClassifier
+
+# Audio Trimming
 def trim_sound(input_file, output_file, start_minute, end_minute):
     with wave.open(input_file, 'rb') as wav_in:
         params = wav_in.getparams()
@@ -62,7 +86,7 @@ def trim_sound(input_file, output_file, start_minute, end_minute):
             wav_out.setparams(params)
             wav_out.writeframes(audio_data)
 
-# Split by silence
+# Audio Splitting
 def break_silence(input_file, output_folder, min_duration=1, silence_thresh=-70, keep_silence=100):
     audio = AudioSegment.from_wav(input_file)
     segments = split_on_silence(
@@ -77,7 +101,7 @@ def break_silence(input_file, output_folder, min_duration=1, silence_thresh=-70,
             os.makedirs(output_folder)
         segment.export(output_file, format='wav')
 
-# Prepare dataset
+# Data Preparation
 def load_data(data_folder):
     X, y = [], []
     for mic_folder in os.listdir(data_folder):
@@ -90,7 +114,7 @@ def load_data(data_folder):
                     y.append(label)
     return X, np.array(y)
 
-# Feature extraction: MFCC, ZCR, RMS
+# Feature Engineering
 def extract_features(file):
     audio, sr = librosa.load(file)
     mfcc = librosa.feature.mfcc(y=audio, sr=sr)
@@ -101,7 +125,7 @@ def extract_features(file):
     rms = np.mean(rms.T, axis=0)
     return np.concatenate((mfcc, zcr, rms), axis=0)
 
-# Show the confusion matrix in a nice-looking graph
+# Confusion Matrix - Single
 def draw_cm(cm, f1, saveas, model_name, actual):
 
     # Normalize confusion matrix
@@ -138,7 +162,7 @@ def draw_cm(cm, f1, saveas, model_name, actual):
     plt.savefig(saveas, bbox_inches='tight')
     #plt.show()
 
-# Consolidate the confusion matrices by summing them
+# Confusion Matrix - Combined
 def draw_all(matrices, actual):
 
     # Normalize the consolidated confusion matrix
@@ -174,11 +198,6 @@ def draw_all(matrices, actual):
     plt.savefig('confusion-matrix.svg')
     #plt.show()
 
-def mean_all(reports):
-    combined = reports.groupby(reports.index).mean()
-    print('\nCombined classification report:')
-    print(combined.to_string(float_format=f'{{:.2f}}'.format))
-
 def main():
     '''
     Fingerprinting microphones via acoustic features such as:
@@ -192,6 +211,7 @@ def main():
      - N: the labels as integers (e.g. 1, then 2, ...)
     '''
 
+    # Load configuration parameters
     with Timer('Loading parameters'):
         try:
             with open('parameters.json') as f:
@@ -200,66 +220,93 @@ def main():
                     if type(v) == dict:
                         for k, w in v.items():
                             value = w if k in settings['evaluate'] else repr(w)
-                            #print(f'{k} = {value}')
                             exec(f'{k} = {value}', globals(), globals())
         except:
             sys.exit('Bad configuration. Traceback:\n' + traceback.format_exc())
 
-    with Timer('Trimming audio and splitting on silence'):
-        if not os.path.isdir(destination):
-            os.makedirs(destination)
-        if not os.listdir(destination):
-            for source in sources:
-                source = root_path + source
-                for mic in os.listdir(source):
-                    if mic.endswith('.wav'):
+    # Prepare audio data
+    if not os.path.isdir(destination):
+        os.makedirs(destination)
+
+    data_saved = os.listdir(destination) # Has the data been prepared (trimmed / split)?
+    labels_saved = os.path.isfile(labelled) # Has the data been labelled?
+
+    if data_saved and labels_saved:
+        print('Loading saved labelled data')
+        with open(labelled, 'rb') as f:
+            data = pickle.load(f)
+    elif not data_saved:
+        for source in sources:
+            source = root_path + source
+            for mic in os.listdir(source):
+                if mic.endswith('.wav'):
+                    with Timer(f'Processing {mic} from {source}'):
                         mic_in = os.path.join(source, mic)
                         mic_out = os.path.join(destination, mic)
                         trim_sound(mic_in, mic_out, start_minute=time_start, end_minute=time_end)
                         mic_parts = mic_out.rsplit('.')[0]
                         break_silence(mic_out, mic_parts, min_duration=min_silence, silence_thresh=threshold, keep_silence=keep_silence)
 
-    with Timer('Loading labels'):
+    # Load audio files (X) and labels (y)
+    if not labels_saved:
         X, y = load_data(destination)
-        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=test_size, random_state=random_state, stratify=y)
+        data = pd.DataFrame({'files': X, 'labels': y})
+        print(data.head())
 
-    if all(os.path.isfile(x) for x in (train_x_ft, train_y_lb, test_x_ft, test_y_lb)):
-        with Timer('Loading features and labels'):
-            with open(train_x_ft, 'rb') as f,   \
-                 open(train_y_lb, 'rb') as g,   \
-                 open(test_x_ft, 'rb') as h,    \
-                 open(test_y_lb, 'rb') as i:
-                X_train, X_test, y_train, y_test = pickle.load(f), pickle.load(g), pickle.load(h), pickle.load(i)
+    # Save everything
+    if not labels_saved:
+        print('Saving labelled data')
+        with open(labelled, 'wb') as f:
+            pickle.dump(data, f)
+
+    # Extract and pre-process features
+    if os.path.isfile(featureset):
+        print('Loading saved features and labels')
+        with open(featureset, 'rb') as f:
+            data_ft = pickle.load(f)
     else:
-        with Timer('Extracting and normalising features'):
-            with open(train_x_ft, 'wb') as f,   \
-                 open(train_y_lb, 'wb') as g,   \
-                 open(test_x_ft, 'wb') as h,    \
-                 open(test_y_lb, 'wb') as i:
+        # Extract
+        with Timer('Extracting features'):
+            data_ft = pd.DataFrame(map(extract_features, data.files))
+            data_ft['labels'] = data.labels
 
-                # Normalise features
-                scaler = StandardScaler()
-                X_train = np.array(list(map(extract_features, X_train)))
-                X_test = np.array(list(map(extract_features, X_test)))
-                X_train = scaler.fit_transform(X_train)
-                X_test = scaler.fit_transform(X_test)
+        # Remove duplicates
+        print('Cleaning features: removing duplicates, replacing null values, ...')
+        data_ft.fillna(0, inplace=True)
+        unique = data_ft.nunique()
+        data_ft.drop(unique[unique==1].index, axis=1, inplace=True)
+        data_ft.replace([np.inf, -np.inf], 0, inplace=True)
 
-                # Apply PCA
-                pca = PCA(n_components=8, random_state=random_state)
-                X_train = pca.fit_transform(X_train)
-                X_test = pca.transform(X_test)
+        # Disconnect labels
+        X = data_ft.iloc[:, :-1]
+        y = data_ft.labels
 
-                # Save features
-                pickle.dump(X_train, f)
-                pickle.dump(X_test, g)
-                pickle.dump(y_train, h)
-                pickle.dump(y_test, i)
+        # Normalise
+        print('Normalising features')
+        scaler = StandardScaler()
+        X = scaler.fit_transform(X)
 
-    # Machine learning models and their filenames
+        # Apply PCA
+        print('Applying PCA to features')
+        pca = PCA(n_components=8, random_state=random_state)
+        X = pca.fit_transform(X)
+
+        # Save
+        print('Saving pre-processed features and labels')
+        with open(featureset, 'wb') as f:
+            pickle.dump(X, f)
+
+    # Preview the dataset
+    print(pd.DataFrame(X).head())
+
+    # Split into training and testing data sets
+    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=test_size, random_state=random_state, stratify=y)
+
+    # Prepare classifiers
     models = {
         'svc.model':  SVC(random_state=random_state),
         'mlp.model':  MLPClassifier(random_state=random_state),
-        'knn.model':  KNeighborsClassifier(n_neighbors=len(set(test_y_lb))),
+        'knn.model':  KNeighborsClassifier(n_neighbors=len(set(y))),
         'rf.model':   RandomForestClassifier(n_estimators=100, random_state=random_state),
         'gbc.model':  GradientBoostingClassifier(n_estimators=100, learning_rate=0.1, random_state=random_state),
         'lr.model':   LogisticRegression(solver='lbfgs', random_state=random_state),
@@ -268,15 +315,18 @@ def main():
     }
     reports, matrices = None, []
 
+    # Train models and output results
     for model_name, model in models.items():
+
         if os.path.isfile(model_name):
-            with Timer('Loading saved model'), open(model_name, 'rb') as f:
+            print('Loading saved model:', model_name)
+            with open(model_name, 'rb') as f:
                 model = pickle.load(f)
 
-        with Timer('Training and saving model'):
-            model.fit(X_train, y_train)
-            with open(model_name, 'wb') as f:
-                pickle.dump(model, f)
+        print('Training and saving model:', model)
+        model.fit(X_train, y_train)
+        with open(model_name, 'wb') as f:
+            pickle.dump(model, f)
 
         # Model evaluation
         predictions = model.predict(X_test)
@@ -286,7 +336,7 @@ def main():
         # Classification report
         print(model)
         report = classification_report(actual, predictions, target_names=mics, output_dict=True, zero_division=0)
-        #print(f'Report:\n{report}')
+        print(f'Report:\n{report}')
         df_report = pd.DataFrame(report).transpose()
         reports = df_report if reports is None else reports.append(df_report)
 
@@ -297,20 +347,16 @@ def main():
         draw_cm(cm, cm_f1, cm_name, model_.upper(), actual)
         matrices.append(cm)
 
-    # Final results
-    mean_all(reports)
+    # Show combined Confusion Matrix
     draw_all(matrices, actual)
 
 if __name__ == '__main__':
     try:
         print()
-        threads = []
         main()
     except KeyboardInterrupt:
         print('Exiting.')
     except:
         traceback.print_exc()
-
     [thread.stop() for thread in threads]
     [thread.join() for thread in threads]
-    print('Successfully stopped threads.')

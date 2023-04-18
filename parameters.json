@@ -1,16 +1,15 @@
 {
 	"paths": {
-		"root_path": "/path/to/sounds/",
-		"train_x_ft": "train.features",
-		"train_y_lb": "train.labels",
-		"test_x_ft": "test.features",
-		"test_y_lb": "test.labels"
+		"root_path": "./",
+		"sources": ["sounds"],
+		"destination": "root_path + 'processed'",
+		"labelled": "labelled.dat",
+		"featureset": "features.dat"
 	},
 	"general": {
 		"keep_silence": false,
 		"min_silence": 1.2,
 		"threshold": -80,
-		"test_size": 0.2,
 		"mics": [
 			"Shure SM7B",
 			"t.bone MB 7 Beta",
@@ -20,10 +19,9 @@
 		]
 	},
 	"training": {
-		"sources": ["230209_0001", "230210_0001"],
-		"destination": "root_path + 'WAV_chunks'",
 		"time_start": "random.randint(0, 30)",
 		"time_end": "time_start + 30",
+		"test_size": 0.2,
 		"random_state": 42
 	},
 	"evaluate": [
