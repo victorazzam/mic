@@ -8,7 +8,7 @@ Part of my Master's thesis submission.
 
 ## Acknowledgements
 
-I would like to thank Prof. Andreas Schaad and Prof. Janis Keuper for supervising my writing, Dominik Binder for dedicating his time to help me better understand the nuances of machine learning, and my friends and family for their never-ending patience. And lastly myself, for not giving up when the pressure caught up.
+I would like to thank Prof. Andreas Schaad and Prof. Janis Keuper for supervising my writing, Dominik Binder for dedicating his time to help me better understand the nuances of machine learning, and my friends and family and Myvette for their never-ending patience. And lastly myself, for not giving up when the pressure caught up.
 
 ## Goals
 
